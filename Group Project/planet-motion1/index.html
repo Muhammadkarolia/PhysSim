@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>2D N-Body Gravity Simulation</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>2D N-Body Gravity Simulation</h1>
+
+    <div class="controls">
+        <button id="start">Start</button>
+        <button id="pause">Pause</button>
+        <button id="reset">Reset</button>
+
+        <label>Mass:
+        <input type="range" id="massSlider" min="5" max="200" value="20">
+        </label>
+        
+        <label>
+            Show Velocity
+            <input type="checkbox" id="toggleVelocity" checked>
+        </label>
+
+        <label>
+            Show Force
+            <input type="checkbox" id="toggleForce" checked>
+        </label>
+    </div>
+
+    <canvas id="canvas" width="1000" height="700" style="background-color: black;"></canvas>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
