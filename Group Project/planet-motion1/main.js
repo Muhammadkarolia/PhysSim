@@ -3,12 +3,110 @@ import { computeForces } from "./physics.js";
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
+
+// Creation mode stuff
+let creationMode = "drag";
+const modeRadios = document.querySelectorAll('input[name="creationMode"]');
+
+// ==========================================================================
+// Mass stuff
 const massSlider = document.getElementById("massSlider");
+const massInput = document.getElementById("massInput");
+
+// Update input when slider moves
+massSlider.addEventListener("input", () => {
+    massInput.value = massSlider.value;
+});
+
+// Update slider when input changes
+massInput.addEventListener("input", () => {
+    let val = parseFloat(massInput.value);
+
+    // Clamp value to slider min/max
+    if (val < parseFloat(massSlider.min)) val = massSlider.min;
+    if (val > parseFloat(massSlider.max)) val = massSlider.max;
+
+    massSlider.value = val;
+    massInput.value = val;
+});
+// Mass Stuff End
+// ==========================================================================
+
+
+// Start Pause Reset
 document.getElementById("start").onclick = () => running = true;
 document.getElementById("pause").onclick = () => running = false;
 document.getElementById("reset").onclick = () => {
     bodies = [];
 };
+
+
+
+// ==========================================================================
+// Pos using Precice values
+let previewBody = null;
+const posXInput = document.getElementById("posX");
+const posYInput = document.getElementById("posY");
+const velXInput = document.getElementById("velX");
+const velYInput = document.getElementById("velY");
+const addBodyBtn = document.getElementById("addBody");
+
+addBodyBtn.addEventListener("click", () => {
+    const x = parseFloat(posXInput.value);
+    const y = parseFloat(posYInput.value);
+    const vx = parseFloat(velXInput.value);
+    const vy = parseFloat(velYInput.value);
+    const mass = parseFloat(massInput.value);
+
+    if (isNaN(x) || isNaN(y) || isNaN(vx) || isNaN(vy) || isNaN(mass)) {
+        alert("Please enter valid numbers.");
+        return;
+    }
+
+    const newBody = new Body(x, y, vx, vy, mass);
+    bodies.push(newBody);
+
+    previewBody = null;
+});
+
+[posXInput, posYInput, velXInput, velYInput, massInput]
+.forEach(input => {
+    input.addEventListener("input", updatePreviewBody);
+});
+
+modeRadios.forEach(radio => {
+    radio.addEventListener("change", () => {
+        console.log(radio.value)
+        creationMode = radio.value;
+        updatePreviewBody();
+    });
+});
+
+
+function updatePreviewBody() {
+    if (creationMode !== "precise") {
+        previewBody = null;
+        return;
+    }
+
+    const x = parseFloat(posXInput.value);
+    const y = parseFloat(posYInput.value);
+    const vx = parseFloat(velXInput.value);
+    const vy = parseFloat(velYInput.value);
+    const mass = parseFloat(massInput.value);
+
+    if (isNaN(x) || isNaN(y) || isNaN(vx) || isNaN(vy) || isNaN(mass)) {
+        previewBody = null;
+        console.log("NAN")
+        return;
+    }
+
+    previewBody = new Body(x, y, vx, vy, mass);
+}
+// Pos using Precice values end
+// ==========================================================================
+
+
 
 let bodies = [];
 let running = false;
@@ -93,28 +191,53 @@ function draw() {
         ctx.stroke();
     }
 
-    // preview for when adding a mass
-    if (isDragging) {
-    ctx.beginPath();
-    ctx.moveTo(dragStartX, dragStartY);
-    ctx.lineTo(mouseX, mouseY);
-    ctx.strokeStyle = "yellow";
-    ctx.stroke();
 
-    // Preview circle
-    ctx.beginPath();
-    ctx.arc(dragStartX, dragStartY, 5, 0, Math.PI * 2);
-    ctx.fillStyle = "white";
-    ctx.fill();
+    // Drag mode preview
+    if (isDragging && creationMode === "drag") {
+
+        ctx.beginPath();
+        ctx.moveTo(dragStartX, dragStartY);
+        ctx.lineTo(mouseX, mouseY);
+        ctx.strokeStyle = "yellow";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(dragStartX, dragStartY, 5, 0, Math.PI * 2);
+        ctx.fillStyle = "white";
+        ctx.fill();
+    }
+    
+    // Precise mode preview
+    if (previewBody && creationMode === "precise") {
+
+        ctx.globalAlpha = 0.5;
+
+        previewBody.draw(ctx);
+
+        ctx.beginPath();
+        ctx.moveTo(previewBody.x, previewBody.y);
+        ctx.lineTo(
+            previewBody.x + previewBody.vx * 5,
+            previewBody.y + previewBody.vy * 5
+        );
+        ctx.strokeStyle = "blue";
+        ctx.stroke();
+
+        ctx.globalAlpha = 1.0;
+    }
+
 }
-}
+
 
 loop();
 
 
 // --------------------------------------------------------------------------------------
-// Adding objects 
+// Adding objects LINKS TO creation mode
 canvas.addEventListener("mousedown", (e) => {
+
+    if (creationMode !== "drag") return;
+
     const rect = canvas.getBoundingClientRect();
     dragStartX = e.clientX - rect.left;
     dragStartY = e.clientY - rect.top;
@@ -128,6 +251,7 @@ canvas.addEventListener("mousemove", (e) => {
 });
 
 canvas.addEventListener("mouseup", () => {
+    if (creationMode !== "drag") return;
     if (!isDragging) return;
 
     isDragging = false;
@@ -142,7 +266,7 @@ canvas.addEventListener("mouseup", () => {
     const vx = (dragStartX - mouseX) * velocityScale;
     const vy = (dragStartY - mouseY) * velocityScale;
 
-    const mass = parseFloat(massSlider.value);
+    const mass = parseFloat(massInput.value);
 
     const newBody = new Body(
         dragStartX,
